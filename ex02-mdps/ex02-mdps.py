@@ -5,10 +5,9 @@ import itertools
 # Init environment
 # Lets use a smaller 3x3 custom map for faster computations
 custom_map3x3 = [
-    'SFFF',
-    'FHFH',
-    'FFFH',
-    'HFFG'
+    'SFF',
+    'FFF',
+    'FHG',
 ]
 env = gym.make("FrozenLake-v0", desc=custom_map3x3)
 # TODO: Uncomment the following line to try the default map (4x4):
@@ -72,6 +71,7 @@ def bruteforce_policies():
             iterables.append([0, 1, 2, 3])
     # that build all permutations:
     policies = np.asarray([np.asarray(p, dtype=np.int) for p in itertools.product(*iterables)])
+
     value_functions = [value_policy(p) for p in policies]
     optimalvalue = np.amax(value_functions, axis=0)
 
