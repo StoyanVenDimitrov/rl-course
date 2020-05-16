@@ -7,11 +7,11 @@ def mc_predictions():
     :return: value for each state
     """
     env = gym.make('Blackjack-v0')
-    gamma = 0.8
+    gamma = 1.0
     values = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
     times_visited = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
 
-    for i in range(10000):
+    for i in range(500000):
         obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
         done = False
         state = None
@@ -46,8 +46,56 @@ def mc_predictions():
             values[state[0]][state[1]][state[2]] = old_value + (G - old_value)/visited
         i += 1
 
-    print(values)
+    no_usable_ace_values = np.take(values, [0], axis=2)
+    usable_ace_values = np.take(values, [1], axis=2)
 
+    return no_usable_ace_values, usable_ace_values
+
+
+def mc_exploring_starts():
+    """
+    :return: optimal policy
+    """
+    env = gym.make('Blackjack-v0')
+    gamma = 1.0
+    policy = np.zeros((10, 10, 2), dtype=np.int8)  # len(sum>11) x len(dealer_card) x (usable, not_usable)
+    action_values = np.zeros((10, 10, 2, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable) x [stick, hit]
+    times_visited = np.zeros((10, 10, 2, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable) x [stick, hit]
+
+    for i in range(10000):
+        obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
+        done = False
+        episode = []
+        while not done:
+            # for all sums < 12: hit. Cannot loose.
+            if obs[0] < 12:
+                obs, reward, done, _ = env.step(1)
+                continue
+            # print("observation:", obs)
+            state = (obs[0] - 12, obs[1] - 1, int(obs[2]))
+            action = policy[state[0]][state[1]][state[2]]
+            obs, reward, done, _ = env.step(action)
+            # print("reward:", reward)
+            # print("")
+            if state is not None:
+                times_visited[state[0]][state[1]][state[2]] += 1
+                episode.append([state, action, reward])
+        G = 0
+        for step in episode:
+            G = gamma * G + step[2]  # update G with the reward
+            state = step[0]
+            action = step[1]
+            old_value = action_values[state[0]][state[1]][state[2]][action]
+            visited = times_visited[state[0]][state[1]][state[2]][action]
+            action_values[state[0]][state[1]][state[2]][action] = old_value + (G - old_value) / visited
+            policy[state[0]][state[1]][state[2]] = np.argmax(action_values[state[0]][state[1]][state[2]])
+        i += 1
+    # sum over the action values for each state:
+    optimal_values = np.sum(action_values, axis=3)
+    no_usable_ace_policy = np.take(policy, [0], axis=2)
+    usable_ace_policy = np.take(policy, [1], axis=2)
+
+    return no_usable_ace_policy, usable_ace_policy, optimal_values
 
 
 def main():
@@ -69,4 +117,4 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    mc_predictions()
+    print(mc_predictions()[0])
