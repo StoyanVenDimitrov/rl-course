@@ -12,19 +12,19 @@ def mc_predictions():
     gamma = 1.0
     values = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
     times_visited = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
-
     for i in range(500000):
         obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
         done = False
-        state = None
         episode = []
         while not done:
             # don't add episodes when hit is the only choice: at sum<12
-            if obs[0] >= 12:
+            if obs[0] < 12:
+                obs, reward, done, _ = env.step(1)
+                continue
                 # use the observation numbers as states
                 # and let the states directly be the indices of the values
-                state = (obs[0] - 12, obs[1] - 1, int(obs[2]))
             #print("observation:", obs)
+            state = (obs[0] - 12, obs[1] - 1, int(obs[2]))
             if obs[0] >= 20:
                 #print("stick")
                 action = 0
@@ -41,15 +41,15 @@ def mc_predictions():
                 times_visited[state[0]][state[1]][state[2]] += 1
                 episode.append([state, action, reward])
         G = 0
-        for step in episode:
+        for step in reversed(episode):
             G = gamma*G + step[2]  # update G with the reward
             state = step[0]
             # use the state as indices
             old_value = values[state[0]][state[1]][state[2]]
             visited = times_visited[state[0]][state[1]][state[2]]
             values[state[0]][state[1]][state[2]] = old_value + (G - old_value)/visited
-        i += 1
 
+        i += 1
     '------ Projection ------'
     no_usable_ace_values = np.take(values, [0], axis=2)
     usable_ace_values = np.take(values, [1], axis=2)
@@ -104,7 +104,7 @@ def mc_exploring_starts():
                 times_visited[state[0]][state[1]][state[2]] += 1
                 episode.append([state, action, reward])
         G = 0
-        for step in episode:
+        for step in reversed(episode):
             G = gamma * G + step[2]  # update G with the reward
             state = step[0]
             action = step[1]
@@ -124,6 +124,9 @@ def mc_exploring_starts():
 
     values_no_usable_ace = np.take_along_axis(action_values_no_usable_ace, no_usable_ace_policy, axis=2)
     values_usable_ace = np.take_along_axis(action_values_usable_ace, usable_ace_policy, axis=2)
+
+    print(np.squeeze(no_usable_ace_policy))
+    print(np.squeeze(usable_ace_policy))
 
     return no_usable_ace_policy, usable_ace_policy, values_no_usable_ace, values_usable_ace
 
