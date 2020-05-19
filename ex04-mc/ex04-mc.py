@@ -81,12 +81,14 @@ def mc_exploring_starts():
     policy_hit = np.ones((8, 10, 2), dtype=np.int8)  # len(11<sum<20) x len(dealer_card) x (usable, not_usable)
     policy_stick = np.zeros((2, 10, 2), dtype=np.int8)  # len(sum=>20) x len(dealer_card) x (usable, not_usable)
     policy = np.append(policy_hit, policy_stick, axis=0)
+    # policy = np.zeros((10, 10, 2), dtype=np.int8)  # len(sum>11) x len(dealer_card) x (usable, not_usable)
     action_values = np.zeros((10, 10, 2, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable) x [stick, hit]
     times_visited = np.zeros((10, 10, 2, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable) x [stick, hit]
-    for i in range(10000):
+    for i in range(500000):
         obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
         done = False
         episode = []
+        random_start = True
         while not done:
             # for all sums < 12: hit. Cannot loose.
             if obs[0] < 12:
@@ -97,6 +99,9 @@ def mc_exploring_starts():
             # and let the states directly be the indices of the values
             state = (obs[0] - 12, obs[1] - 1, int(obs[2]))
             action = policy[state[0]][state[1]][state[2]]
+            if random_start:
+                action = np.random.randint(2)
+                random_start = False
             obs, reward, done, _ = env.step(action)
             # print("reward:", reward)
             # print("")
