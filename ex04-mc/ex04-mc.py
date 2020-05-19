@@ -1,7 +1,7 @@
 import gym
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+
 
 def mc_predictions():
     """
@@ -12,7 +12,7 @@ def mc_predictions():
     gamma = 1.0
     values = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
     times_visited = np.zeros((10, 10, 2))  # len(sum>11) x len(dealer_card) x (usable, not_usable)
-    for i in range(500000):
+    for i in range(10000):
         obs = env.reset()  # obs is a tuple: (player_sum, dealer_card, useable_ace)
         done = False
         episode = []
@@ -114,18 +114,21 @@ def mc_exploring_starts():
             action_values[state[0]][state[1]][state[2]][action] = old_value + (G - old_value) / visited
             policy[state[0]][state[1]][state[2]] = np.argmax(action_values[state[0]][state[1]][state[2]])
         i += 1
-    # take the action value for the chosen action for each state
-    # to get the state value, because the policy is deterministic:
     no_usable_ace_policy = np.take(policy, [0], axis=2)
     usable_ace_policy = np.take(policy, [1], axis=2)
 
     action_values_no_usable_ace = np.squeeze(np.take(action_values, [0], axis=3), axis=3)
     action_values_usable_ace = np.squeeze(np.take(action_values, [1], axis=3), axis=3)
 
+    # take the action value for the chosen action for each state
+    # to get the state value, because the policy is deterministic:
     values_no_usable_ace = np.take_along_axis(action_values_no_usable_ace, no_usable_ace_policy, axis=2)
     values_usable_ace = np.take_along_axis(action_values_usable_ace, usable_ace_policy, axis=2)
 
+    print('After 10000 iterations and with gamma=1:')
+    print('No usable Ace:')
     print(np.squeeze(no_usable_ace_policy))
+    print('Usable ace:')
     print(np.squeeze(usable_ace_policy))
 
     return no_usable_ace_policy, usable_ace_policy, values_no_usable_ace, values_usable_ace
@@ -150,4 +153,4 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    mc_exploring_starts()
+    mc_predictions()
