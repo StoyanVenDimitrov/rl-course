@@ -100,9 +100,8 @@ def mc_exploring_starts():
             obs, reward, done, _ = env.step(action)
             # print("reward:", reward)
             # print("")
-            if state is not None:
-                times_visited[state[0]][state[1]][state[2]] += 1
-                episode.append([state, action, reward])
+            times_visited[state[0]][state[1]][state[2]] += 1
+            episode.append([state, action, reward])
         G = 0
         for step in reversed(episode):
             G = gamma * G + step[2]  # update G with the reward
@@ -117,8 +116,8 @@ def mc_exploring_starts():
     no_usable_ace_policy = np.take(policy, [0], axis=2)
     usable_ace_policy = np.take(policy, [1], axis=2)
 
-    action_values_no_usable_ace = np.squeeze(np.take(action_values, [0], axis=3), axis=3)
-    action_values_usable_ace = np.squeeze(np.take(action_values, [1], axis=3), axis=3)
+    action_values_no_usable_ace = np.squeeze(np.take(action_values, [0], axis=2), axis=2)
+    action_values_usable_ace = np.squeeze(np.take(action_values, [1], axis=2), axis=2)
 
     # take the action value for the chosen action for each state
     # to get the state value, because the policy is deterministic:
@@ -130,6 +129,7 @@ def mc_exploring_starts():
     print(np.squeeze(no_usable_ace_policy))
     print('Usable ace:')
     print(np.squeeze(usable_ace_policy))
+
 
     return no_usable_ace_policy, usable_ace_policy, values_no_usable_ace, values_usable_ace
 
@@ -153,4 +153,4 @@ def main():
 
 if __name__ == "__main__":
     # main()
-    mc_predictions()
+    mc_exploring_starts()
