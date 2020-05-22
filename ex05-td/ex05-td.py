@@ -1,4 +1,5 @@
 import gym
+import random
 import numpy as np
 from itertools import product
 import matplotlib.pyplot as plt
@@ -88,22 +89,81 @@ def plot_Q(Q, env):
 
 def sarsa(env, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
     Q = np.zeros((env.observation_space.n,  env.action_space.n))
+    X, Y = [], []
+    current_average = 0
 
-    # TODO: implement the sarsa algorithm
+    def choose_a(Q, s):
+        if random.random() > epsilon:
+            a = np.random.choice(np.where(Q[s] == Q[s].max())[0])
+        else:
+            a = random.randrange(len(Q[s]))
+        return a
 
-    # This is some starting point performing random walks in the environment:
     for i in range(num_ep):
         s = env.reset()
+        a = choose_a(Q, s)
         done = False
+        episode_len = 0
         while not done:
-            a = np.random.randint(env.action_space.n)
             s_, r, done, _ = env.step(a)
+            a_ = choose_a(Q, s_)
+            Q[s][a] = Q[s][a] + alpha*(r + gamma*Q[s_][a_] - Q[s][a])
+            s = s_
+            a = a_
+            episode_len += 1
+        current_average = current_average + (episode_len-current_average)/(i+1)
+        X.append(i)
+        Y.append(current_average)
+
+    # Plot the average episode length as training continues.
+    fig, ax = plt.subplots()
+    ax.plot(X, Y)
+
+    ax.set(xlabel='episode', ylabel='episode length',
+           title='average episode length as training continues')
+    ax.grid()
+
+    # This is some starting point performing random walks in the environment:
+    # for i in range(num_ep):
+    #     s = env.reset()
+    #     done = False
+    #     while not done:
+    #         a = np.random.randint(env.action_space.n)
+    #         s_, r, done, _ = env.step(a)
     return Q
 
 
 def qlearning(env, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
     Q = np.zeros((env.observation_space.n,  env.action_space.n))
-    # TODO: implement the qlearning algorithm
+
+    X, Y = [], []
+    current_average = 0
+    def choose_a(Q, s):
+        if random.random() > epsilon:
+            a = np.random.choice(np.where(Q[s] == Q[s].max())[0])
+        else:
+            a = random.randrange(len(Q[s]))
+        return a
+
+    for i in range(num_ep):
+        s = env.reset()
+        done = False
+        episode_len = 0
+        while not done:
+            a = choose_a(Q, s)
+            s_, r, done, _ = env.step(a)
+            Q[s][a] = Q[s][a] + alpha * (r + gamma * np.max(Q[s_]) - Q[s][a])
+            s = s_
+            episode_len += 1
+            current_average = current_average + (episode_len - current_average) / (i + 1)
+            X.append(i)
+            Y.append(current_average)
+    fig, ax = plt.subplots()
+    ax.plot(X, Y)
+
+    ax.set(xlabel='episode', ylabel='episode length',
+           title='Q-learning: average episode length as training continues')
+    ax.grid()
     return Q
 
 
