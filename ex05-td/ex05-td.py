@@ -94,6 +94,7 @@ def sarsa(env, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
 
     def choose_a(Q, s):
         if random.random() > epsilon:
+            # breaking the ties at random!
             a = np.random.choice(np.where(Q[s] == Q[s].max())[0])
         else:
             a = random.randrange(len(Q[s]))
@@ -140,6 +141,7 @@ def qlearning(env, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
     current_average = 0
     def choose_a(Q, s):
         if random.random() > epsilon:
+            # breaking the ties at random!
             a = np.random.choice(np.where(Q[s] == Q[s].max())[0])
         else:
             a = random.randrange(len(Q[s]))
@@ -167,9 +169,9 @@ def qlearning(env, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
     return Q
 
 
-env=gym.make('FrozenLake-v0')
+#env=gym.make('FrozenLake-v0')
 #env=gym.make('FrozenLake-v0', is_slippery=False)
-#env=gym.make('FrozenLake-v0', map_name="8x8")
+env=gym.make('FrozenLake-v0', map_name="8x8")
 
 print("Running sarsa...")
 Q = sarsa(env)
