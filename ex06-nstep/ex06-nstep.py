@@ -37,39 +37,31 @@ def nstep_sarsa(env, n=3, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
         t = 0
         T = 100000
         R = []
-        S = []
-        A = []
-        A.append(a)
-        print('########')
-        end = False
-        while not end:
+        S = [s]
+        A = [a]
+
+        while True:
             if t < T:
                 s_, r, done, _ = env.step(a)
                 S.append(s_)
                 R.append(r)
-                A.append(a)
                 if not done:
                     a_ = choose_a(Q, s_)
                     a = a_
+                    A.append(a_)
                 else:
                     T = t +1
             tau = t - n + 1
-            if tau == T-1:
-                end = True
-            else:
-
-                print(t, tau)
-                print(S)
-                print(A)
-                print(T)
-                if tau >= 0:
-                    sum_up_to = min((tau + n), T)
-                    G = 0
-                    for i in range(sum_up_to):
-                        G = G + (gamma**i)*R[i]
-                    if (tau + n) < T:
-                        G = G + (gamma**n)*Q[S[tau + n]][A[tau + n]]
-                    Q[S[tau]][A[tau]] = Q[S[tau]][A[tau]] + alpha*(G-Q[S[tau]][A[tau]])
+            if tau >= 0:
+                sum_up_to = min((tau + n), T)
+                G = 0
+                for i in range(sum_up_to):
+                    G = G + (gamma**i)*R[i]
+                if (tau + n) < T:
+                    G = G + (gamma**n)*Q[S[tau + n]][A[tau + n]]
+                Q[S[tau]][A[tau]] = Q[S[tau]][A[tau]] + alpha*(G-Q[S[tau]][A[tau]])
+            if t==T-1:
+                break
             t = t + 1
     return Q
     # Plot the average episode length as training continues.
@@ -80,8 +72,8 @@ def nstep_sarsa(env, n=3, alpha=0.1, gamma=0.9, epsilon=0.1, num_ep=int(1e4)):
     # ax.grid()
 
 
-env=gym.make('FrozenLake-v0')
+env=gym.make('FrozenLake-v0')#, map_name="8x8")
 # TODO: run multiple times, evaluate the performance for different n and alpha
 Q = nstep_sarsa(env)
-print(Q.shape)
+print(Q)
 _print_policy(Q, env)
