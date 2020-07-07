@@ -33,18 +33,20 @@ def generate_episode(env, theta, display=False):
         if done:
             break
         states.append(state)
-
-    return states, rewards, actions
+    return states, rewards, actions, p
 
 
 def REINFORCE(env):
     theta = np.random.rand(4, 2)  # policy parameters
+    weight_dim, num_action = theta.shape
     last_ep_lens = []
+    gamma = 0.9
+    alpha = 0.0001
     for e in range(10000):
         if e % 300 == 0:
-            states, rewards, actions = generate_episode(env, theta, True)  # display the policy every 300 episodes
+            states, rewards, actions, probs = generate_episode(env, theta, True)  # display the policy every 300 episodes
         else:
-            states, rewards, actions = generate_episode(env, theta, False)
+            states, rewards, actions, probs = generate_episode(env, theta, False)
 
         print("episode: " + str(e) + " length: " + str(len(states)))
         # TODO: keep track of previous 100 episode lengths and compute mean
@@ -52,13 +54,19 @@ def REINFORCE(env):
         last_ep_lens.append(len(states))
         if e >= 100:
             last_ep_lens.pop(0)
-        avg_len = sum(last_ep_lens)/(e+1)
-
+            avg_len = sum(last_ep_lens)/(100)
+            print(avg_len)
         # TODO: implement the reinforce algorithm to improve the policy weights
-
-
-
-
+        T = len(rewards)
+        for i in range(T):
+            gammas = [gamma**j for j in range(T-i)]
+            G = sum(np.multiply(np.array(gammas), rewards[i:T]))
+            # update:
+            for dim in range(num_action):
+                # compute partial derivative for dimension, see .pdf
+                grad = (states[i]*int(dim==actions[i]) - states[i]*probs[dim])
+                # apply the part derivative on this dimension
+                theta[:, dim] = theta[:, dim] + alpha * G * grad
 
 
 def main():
