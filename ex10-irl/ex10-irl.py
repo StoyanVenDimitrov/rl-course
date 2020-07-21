@@ -2,6 +2,21 @@ import gym
 import numpy as np
 from itertools import product
 import matplotlib.pyplot as plt
+import copy
+
+env = gym.make('FrozenLake-v0')
+n_states = env.observation_space.n
+n_actions = env.action_space.n
+dynamics = env.P
+mu = np.random.dirichlet(np.ones(n_states), size=1)[0]
+
+def naive_policy(env, trajs):
+    """policy from state-action co-occurancies"""
+    action_values = np.zeros((n_states, n_actions))
+    for traj in trajs:
+        for state_action in traj:
+            action_values[state_action[0]][state_action[1]] += 1
+    return np.argmax(action_values, axis=1)
 
 
 def generate_demonstrations(env, expertpolicy, epsilon=0.1, n_trajs=100):
@@ -40,10 +55,14 @@ def plot_rewards(rewards, env):
     plt.show()
 
 
+def reward_function(state, psi):
+    """compute linear reward function"""
+    one_hot = np.array([int(i == state) for i in range(n_states)])
+    return np.dot(psi, one_hot)
+
+
 def value_iteration(env, rewards):
     """ Computes a policy using value iteration given a list of rewards (one reward per state) """
-    n_states = env.observation_space.n
-    n_actions = env.action_space.n
     V_states = np.zeros(n_states)
     theta = 1e-8
     gamma = .9
@@ -67,19 +86,39 @@ def value_iteration(env, rewards):
 
     return policy
 
+def learn_from_demonstration(env, trajectories):
+    """apply steps 2 to 5 of MaxEntropy IRL"""
+    psi = np.random.rand(n_states)
+    rewards = np.zeros(n_states)
+    new_mu = np.zeros(n_states)
 
+    for traj in trajectories:
+        for s, a in traj:
+            rewards[s] = reward_function(s, psi)
+    policy = value_iteration(env, rewards=rewards)
+    # update mu_:
+
+    def new_mu_for_state(state):
+        for s in range(n_states):
+            # policy is deterministic, no sum over a:
+            action = policy[s]
+            for p_s_s in dynamics[s][action]:
+                if p_s_s[1] == state:
+                    new_mu[state] += p_s_s[0]*mu[s]
+    for s in range(n_states):
+        new_mu_for_state(s)
+
+    # mu = new_mu
 
 
 def main():
-    env = gym.make('FrozenLake-v0')
-    #env.render()
+    # env.render()
     env.seed(0)
     np.random.seed(0)
     expertpolicy = [0, 3, 0, 3, 0, 0, 0, 0, 3, 1, 0, 0, 0, 2, 1, 0]
-    trajs = generate_demonstrations(env, expertpolicy, 0.1, 20)  # list of trajectories
+    trajs = generate_demonstrations(env, expertpolicy, 0.1, 100)  # list of trajectories
     print("one trajectory is a list with (state, action) pairs:")
-    print (trajs[0])
-
+    learn_from_demonstration(env, trajs)
 
 
 
