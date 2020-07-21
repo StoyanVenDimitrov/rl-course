@@ -90,24 +90,26 @@ def learn_from_demonstration(env, trajectories):
     """apply steps 2 to 5 of MaxEntropy IRL"""
     psi = np.random.rand(n_states)
     rewards = np.zeros(n_states)
-    new_mu = np.zeros(n_states)
 
     for traj in trajectories:
         for s, a in traj:
             rewards[s] = reward_function(s, psi)
     policy = value_iteration(env, rewards=rewards)
-    # update mu_:
 
-    def new_mu_for_state(state):
-        for s in range(n_states):
-            # policy is deterministic, no sum over a:
-            action = policy[s]
-            for p_s_s in dynamics[s][action]:
-                if p_s_s[1] == state:
-                    new_mu[state] += p_s_s[0]*mu[s]
-    for s in range(n_states):
-        new_mu_for_state(s)
-
+    def get_new_mu(T):
+        new_mu = np.zeros([n_states, T])
+        for step in range(T):
+            for state in range(n_states):
+                if step == 0:
+                    new_mu[state][step] = mu[state]
+                else:
+                    for s in range(n_states):
+                        # policy is deterministic, no sum over a:
+                        action = policy[s]
+                        for p_s_s in dynamics[s][action]:
+                            if p_s_s[1] == state:
+                                new_mu[state][step] += p_s_s[0]*new_mu[s][step-1]
+        return np.sum(new_mu, axis=1)/4
     # mu = new_mu
 
 
