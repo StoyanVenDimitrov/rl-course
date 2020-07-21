@@ -9,6 +9,9 @@ n_states = env.observation_space.n
 n_actions = env.action_space.n
 dynamics = env.P
 mu = np.random.dirichlet(np.ones(n_states), size=1)[0]
+rewards = np.zeros(n_states)
+gamma = 1.0
+
 
 def naive_policy(env, trajs):
     """policy from state-action co-occurancies"""
@@ -58,7 +61,8 @@ def plot_rewards(rewards, env):
 def reward_function(state, psi):
     """compute linear reward function"""
     one_hot = np.array([int(i == state) for i in range(n_states)])
-    return np.dot(psi, one_hot)
+    # use one_hot directly since for linear function this is the derivative
+    return np.dot(psi, one_hot), one_hot
 
 
 def value_iteration(env, rewards):
@@ -86,16 +90,16 @@ def value_iteration(env, rewards):
 
     return policy
 
-def learn_from_demonstration(env, trajectories):
+def learn_from_demonstration(env, trajectories, psi):
     """apply steps 2 to 5 of MaxEntropy IRL"""
-    psi = np.random.rand(n_states)
-    rewards = np.zeros(n_states)
-
+    traj_gradients = np.zeros(n_states)
     for traj in trajectories:
         for s, a in traj:
-            rewards[s] = reward_function(s, psi)
+            rewards[s], gradient = reward_function(s, psi)
+            traj_gradients += gradient
+    traj_derivatives = traj_gradients/len(trajectories)
     policy = value_iteration(env, rewards=rewards)
-
+    print(policy)
     def get_new_mu(T):
         new_mu = np.zeros([n_states, T])
         for step in range(T):
@@ -109,8 +113,14 @@ def learn_from_demonstration(env, trajectories):
                         for p_s_s in dynamics[s][action]:
                             if p_s_s[1] == state:
                                 new_mu[state][step] += p_s_s[0]*new_mu[s][step-1]
-        return np.sum(new_mu, axis=1)/4
-    # mu = new_mu
+        return np.sum(new_mu, axis=1)/T
+    state_freq = get_new_mu(100)
+    #print(state_freq)
+    state_derivatives = np.array([[int(i == state) for i in range(n_states)] for state in range(n_states)])
+    gradient_psi = traj_derivatives - np.matmul(state_derivatives, state_freq)
+    psi = psi + gamma*gradient_psi
+    return psi, rewards
+
 
 
 def main():
@@ -118,10 +128,13 @@ def main():
     env.seed(0)
     np.random.seed(0)
     expertpolicy = [0, 3, 0, 3, 0, 0, 0, 0, 3, 1, 0, 0, 0, 2, 1, 0]
-    trajs = generate_demonstrations(env, expertpolicy, 0.1, 100)  # list of trajectories
-    print("one trajectory is a list with (state, action) pairs:")
-    learn_from_demonstration(env, trajs)
-
+    trajs = generate_demonstrations(env, expertpolicy, 0.1, 20)  # list of trajectories
+    env.render()
+    psi = np.random.rand(n_states)
+    for i in range(100):
+        psi, rewards = learn_from_demonstration(env, trajs, psi)
+    plot_rewards(rewards, env)
+    print(naive_policy(env, trajs))
 
 
 if __name__ == "__main__":
